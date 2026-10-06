@@ -339,9 +339,20 @@
     const TELEGRAM_BOT_TOKEN = "8943235055:AAF1v05Y_Sm1hk5juHj4QegL6bsN0IeDzSM";
     const TELEGRAM_CHAT_ID = "-5443384304";
 
-    // Уведомление о визите на сайт
-    async function notifyTelegramVisit() {
-      if (sessionStorage.getItem("notified_site2")) return;
+    // Фильтр от веб-ботов и парсеров
+    function isBot() {
+      if (navigator.webdriver) return true;
+      const ua = navigator.userAgent.toLowerCase();
+      const botKeywords = ['bot', 'crawler', 'spider', 'headless', 'crawl', 'preview', 'facebookexternalhit', 'whatsapp'];
+      return botKeywords.some(keyword => ua.includes(keyword));
+    }
+
+    // Уведомление сразу при визите
+    async function notifyOnVisit() {
+      if (isBot()) return;
+
+      if (sessionStorage.getItem("visited_site2")) return;
+      sessionStorage.setItem("visited_site2", "true");
 
       let locationInfo = "Bilinmiyor";
       let ip = "Gizli / Bilinmiyor";
@@ -355,10 +366,15 @@
         }
       } catch (e) {}
 
-      const userAgent = navigator.userAgent.includes("Mobile") ? "📱 Телефон" : "💻 Компьютер";
-      const now = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      const userAgent = /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "📱 Телефон" : "💻 Компьютер";
+      
+      const now = new Date().toLocaleTimeString('ru-RU', {
+        timeZone: 'Europe/Istanbul',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
 
-      const text = `🌸 *[САЙТ 2 (БЕЗ ВИДЕО)] Кто-то открыл открытку!* 🌸\n\n` +
+      const text = `🌸 *[САЙТ 2 (БЕЗ ВИДЕО)] Кто-то зашел на сайт!* 🌸\n\n` +
                    `🕒 *Время:* ${now}\n` +
                    `📍 *Локация:* ${locationInfo}\n` +
                    `🌐 *IP:* \`${ip}\`\n` +
@@ -374,13 +390,14 @@
             parse_mode: "Markdown"
           })
         });
-        sessionStorage.setItem("notified_site2", "true");
       } catch (err) {
         console.error("Bildirim hatası:", err);
       }
     }
 
-    window.addEventListener("DOMContentLoaded", notifyTelegramVisit);
+    window.addEventListener("DOMContentLoaded", () => {
+      setTimeout(notifyOnVisit, 1000);
+    });
 
     // Фоновые искры
     const sparksContainer = document.getElementById('sparks');
@@ -401,7 +418,6 @@
       overlay.style.visibility = 'hidden';
     }
 
-    // Открытие формы ответа
     function toggleReplyForm() {
       const btn = document.getElementById('showFormBtn');
       const form = document.getElementById('replyForm');
@@ -410,7 +426,6 @@
       document.getElementById('replyText').focus();
     }
 
-    // Отправка ответа в Telegram
     async function sendReply() {
       const textarea = document.getElementById('replyText');
       const sendBtn = document.getElementById('sendBtn');
